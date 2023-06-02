@@ -7,9 +7,7 @@ import subprocess
 xmltollvm = importlib.import_module('src.xmltollvm')
 opt_verify = importlib.import_module('src.lifting-opt-verify')
 
-# These need to change in your local installation
-ghidra_headless_loc = "/home/tej/buildsGhidra/ghidra_9.1.1_PUBLIC/support/analyzeHeadless"
-prj_dir = "/home/tej/GhidraProjects/"
+import tomli  # pip install tomli
 
 # These shouldn't need to be changed
 prj_name = "lifting"
@@ -23,6 +21,10 @@ parser.add_argument('-opt', action='store', help='select optimization level 0-3'
 parser.add_argument('-cfg', action='store_true', help='emit cfg', default=False, dest='cfg')
 results = parser.parse_args()
 
+# Parse settings file
+with open("settings.toml", mode="rb") as f:
+    config = tomli.load(f)
+
 # Check arguments
 if results.opt is not None:
     opt_level = int(results.opt)
@@ -32,7 +34,7 @@ else:
     opt_level = results.opt
 
 # Convert P-code to XML
-subprocess.run([ghidra_headless_loc, prj_dir, prj_name, '-import', results.input_file,
+subprocess.run([config["ghidra_dir"] + "/support/analyzeHeadless", config["project_dir"], prj_name, '-import', results.input_file,
                 '-postScript', xml_script, '-overwrite', '-deleteProject'])
 filename = results.input_file.split('/')[-1]
 xmlfile = './' + filename + '.xml'

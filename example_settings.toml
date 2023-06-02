@@ -1,0 +1,2 @@
+ghidra_dir = "/path/to/ghidra"
+project_dir = "/path/to/folder/to/place/ghidra/project/in"
