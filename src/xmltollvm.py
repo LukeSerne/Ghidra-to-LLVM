@@ -484,6 +484,13 @@ def update_output(builder, name, output):
             reg = builder.bitcast(reg, output.type.as_pointer())
         builder.store(output, reg)
     elif var_type == "unique":
+        # Make sure the output has the correct width - this fixes comparisons which
+        # are 1 bit wide in LLVM, but 8 bits in PCODE
+        out_size = int(name.get("size")) * 8
+        out_type = output.type
+        if isinstance(out_type, ir.IntType) and out_type.width != out_size:
+            output = builder.bitcast(output, ir.IntType(out_size))
+
         uniques[name.text] = output
 
 
