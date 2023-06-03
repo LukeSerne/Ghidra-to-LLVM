@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -Wall -g
 
-SRCDIR =  ./src
+SRCDIR = ./src
 OBJDIR = ./obj
 
 SRCS := $(shell find $(SRCDIR) -name "*.cpp")
@@ -11,6 +11,7 @@ OBJS := $(OBJS:.cpp=.o)
 all: $(OBJS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
-		$(CXX) $(CXXFLAGS) -o $@ $<
-clean: 
-		rm -f $(OBJDIR)/*
+	$(CXX) $(CXXFLAGS) -o $@ $<
+
+clean:
+	rm -f $(OBJDIR)/*
