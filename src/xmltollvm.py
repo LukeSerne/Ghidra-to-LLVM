@@ -448,13 +448,44 @@ def populate_cfg(function, builders, blocks):
                 result = builder.or_(lhs, rhs)
                 update_output(builder, pcode.find("output"), result)
 
+            elif mnemonic.text == "POPCOUNT":
+                # <out> = POPCOUNT(<in>) roughly corresponds to LLVM's 'ctpop'
+                # followed by a zero extension to the output varnode's size.
+                inp_node = fetch_input_varnode(builder, pcode.find("input_0"))
+                out_node = pcode.find("output")
+                out_width = 8 * int(out_node.get("size"))
+
+                # NOTE: LLVM's 'ctpop' has a result with a size that is the same
+                # as the input. However, Ghidra's POPCOUNT might have a smaller
+                # or larger size. It is a little unclear how this really works.
+
+                result = builder.ctpop(inp_node)
+
+                if result.type.width < out_width:
+                    result = builder.zext(result, ir.IntType(out_width))
+
+                elif result.type.width > out_width:
+                    # This case is not defined clearly in the ghidra spec.
+                    # However, truncating away the upper bytes should only be a
+                    # problem if they are non-zero (i.e. there are more than 255
+                    # 1-bits in the input varnode), which shouldn't happen.
+                    # Still, let's add a check and a warning if it does happen.
+                    # TODO: Create an issue to the Ghidra repo asking for clarification
+                    # on what should happen in this case
+                    if result.type.width > (1 << out_width):
+                        print("[!] WARNING: POPCOUNT result might overflow the output node - LLVM IR might be inaccurate")
+
+                    result = builder.trunc(result, ir.IntType(out_width))
+
+                update_output(builder, out_node, result)
+
             elif mnemonic.text in {
                     "FLOAT_EQUAL", "FLOAT_NOTEQUAL", "FLOAT_LESS", "FLOAT_LESSEQUAL",
                     "FLOAT_ADD", "FLOAT_SUB", "FLOAT_MULT", "FLOAT_DIV", "FLOAT_NEG",
                     "FLOAT_ABS", "FLOAT_SQRT", "FLOAT_CEIL", "FLOAT_FLOOR", "FLOAT_ROUND",
                     "FLOAT_NAN", "INT2FLOAT", "FLOAT2FLOAT", "TRUNC", "CPOOLREF",
                     "NEW", "MULTIEQUAL", "INDIRECT", "PTRADD", "PTRSUB", "CAST",
-                    "LZCOUNT", "PIECE", "POPCOUNT",
+                    "LZCOUNT", "PIECE",
                 }:
                 raise NotImplementedError(f"PCODE opcode {mnemonic.text!r} is not implemented")
 
