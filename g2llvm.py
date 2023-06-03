@@ -1,13 +1,12 @@
 #!/usr/bin/python3
 
-import importlib
 import argparse
 import subprocess
 
-xmltollvm = importlib.import_module('src.xmltollvm')
-opt_verify = importlib.import_module('src.lifting-opt-verify')
+import src.xmltollvm as xmltollvm
+import src.lifting_opt_verify as opt_verify
 
-import tomli  # pip install tomli
+import tomli
 
 # These shouldn't need to be changed
 prj_name = "lifting"
