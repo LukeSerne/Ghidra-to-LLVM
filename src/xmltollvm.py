@@ -177,6 +177,9 @@ def populate_cfg(function, builders, blocks):
                 false_target = list(blocks.values())[block_iterator]
                 condition = fetch_input_varnode(builder, pcode.find("input_1"))
                 no_branch = False
+                # Ensure the condition is 1 bit wide
+                if isinstance(condition.type, ir.IntType) and condition.type.width == 8:  # truncate bools
+                    condition = builder.trunc(condition, ir.IntType(1))
                 builder.cbranch(condition, true_target, false_target)
 
             elif mnemonic.text == "BRANCHIND":
