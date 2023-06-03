@@ -500,8 +500,8 @@ def update_output(builder, name, output):
         # are 1 bit wide in LLVM, but 8 bits in PCODE
         out_size = int(name.get("size")) * 8
         out_type = output.type
-        if isinstance(out_type, ir.IntType) and out_type.width != out_size:
-            output = builder.bitcast(output, ir.IntType(out_size))
+        if isinstance(out_type, ir.IntType) and out_type.width < out_size:
+            output = builder.zext(output, ir.IntType(out_size))
 
         uniques[name.text] = output
 
