@@ -529,7 +529,18 @@ def check_shift_inputs(builder, lhs, rhs, target):
 
 
 def int_comparison_check_inputs(builder, lhs, rhs):
-    # For integer comparison operations. We assume rhs is the correct type.
-    if lhs.type.is_pointer:
+    # For integer comparison operations, we make sure both operands are integers
+    # (and not pointers).
+    left_is_ptr = lhs.type.is_pointer
+    right_is_ptr = rhs.type.is_pointer
+
+    if not left_is_ptr and not right_is_ptr:
+        pass
+    elif left_is_ptr and not right_is_ptr:
         lhs = builder.ptrtoint(lhs, rhs.type)
+    elif not left_is_ptr and right_is_ptr:
+        rhs = builder.ptrtoint(rhs, lhs.type)
+    else:
+        raise ValueError(f"Both sides of integer comparison are pointers! ({lhs.type=} and {rhs.type=})")
+
     return lhs, rhs
