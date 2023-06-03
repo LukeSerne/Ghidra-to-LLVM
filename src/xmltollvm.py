@@ -121,21 +121,38 @@ def populate_cfg(function, builders, blocks):
             elif mnemonic.text == "LOAD":
                 input_1 = pcode.find("input_1")
                 output = pcode.find("output")
-                rhs = fetch_input_varnode(builder, input_1)
+                load_ptr = fetch_input_varnode(builder, input_1)
+
                 if input_1.get("storage") == "unique" and output.get("storage") == "unique":
                     # This is incorrect. This is treating it as a copy, should load the memory address in the input 1
-                    update_output(builder, output, rhs)
-                else:
+                    update_output(builder, output, load_ptr)
+                elif input_1.get("storage") == "register":
                     if input_1.text in pointers:
-                        rhs = builder.gep(rhs, [ir.Constant(int64, 0)])
-                    result = builder.load(rhs)
+                        # Don't load from the register, but load from the value
+                        # contained in the register
+                        load_ptr = builder.gep(load_ptr, [ir.Constant(int64, 0)])
+
+                    if not load_ptr.type.is_pointer:
+                        # LLVM doesn't know this is a pointer yet...
+                        # Make it point to the output type
+                        output_size = 8 * int(output.get("size"))
+                        load_ptr = builder.inttoptr(load_ptr, ir.PointerType(ir.IntType(output_size)))
+
+                    result = builder.load(load_ptr)
                     update_output(builder, output, result)
+                else:
+                    raise NotImplementedError(f"Weird and not implemented LOAD, arising from PCODE: {et.tostring(pcode)}")
 
             elif mnemonic.text == "STORE":
                 input_1 = pcode.find("input_1")  # store location
                 input_2 = pcode.find("input_2")  # store value
                 rhs = fetch_input_varnode(builder, input_2)
                 lhs = fetch_output_varnode(input_1)
+                if not lhs.type.is_pointer:
+                    # LLVM doesn't know this is a pointer yet...
+                    # Make it point to the storage value type
+                    store_size = 8 * int(input_2.get("size"))
+                    lhs = builder.inttoptr(lhs, ir.PointerType(ir.IntType(store_size)))
                 lhs2 = builder.gep(lhs, [ir.Constant(int64, 0)])
                 if lhs2.type != rhs.type.as_pointer():
                     lhs2 = builder.bitcast(lhs2, rhs.type.as_pointer())
