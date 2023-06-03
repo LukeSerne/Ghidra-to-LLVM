@@ -115,11 +115,7 @@ def populate_cfg(function, builders, blocks):
             mnemonic = pcode.find("name")
 
             if mnemonic.text == "COPY":
-                output = pcode.find("output")
-                if output.text in flags and pcode.find("input_0").get("storage") == "constant":
-                    source = ir.Constant(ir.IntType(1), int(pcode.find("input_0").text, 0))
-                else:
-                    source = fetch_input_varnode(builder, pcode.find("input_0"))
+                source = fetch_input_varnode(builder, pcode.find("input_0"))
                 update_output(builder, pcode.find("output"), source)
 
             elif mnemonic.text == "LOAD":
