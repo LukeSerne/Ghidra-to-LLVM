@@ -479,13 +479,42 @@ def populate_cfg(function, builders, blocks):
 
                 update_output(builder, out_node, result)
 
+            elif mnemonic.text == "LZCOUNT":
+                # Ghidra:
+                # <out> = LZCOUNT(<in>)
+                # This operator counts the number of zeros starting at the most
+                # significant bit. For instance, for a 4-byte varnode, a value
+                # of 0 returns 32, a value of 1 returns 31, and the value 2**31
+                # returns 0. The resulting count is zero extended into the
+                # output varnode.
+                src = fetch_input_varnode(builder, pcode.find("input_0"))
+                out_node = pcode.find("output")
+                out_width = 8 * int(out_node.get("size"))
+
+                # LLVM:
+                # ‘llvm.ctlz.*’
+                # declare i8 @llvm.ctlz.i8 (i8 <src>, i1 <is_zero_poison>)
+                # The ‘llvm.ctlz’ intrinsic counts the leading (most significant)
+                # zeros in a variable, or within each element of the vector. If
+                # src == 0 then the result is the size in bits of the type of
+                # src if is_zero_poison == 0 and poison otherwise.
+                FALSE = ir.Constant(ir.IntType(1), 0)
+                result = builder.ctlz(src, FALSE)
+
+                if out_width > src.type.width:
+                    result = builder.zext(result, ir.IntType(out_width))
+                elif out_width < src.type.width:
+                    result = builder.trunc(result, ir.IntType(out_width))
+
+                update_output(builder, out_node, result)
+
             elif mnemonic.text in {
                     "FLOAT_EQUAL", "FLOAT_NOTEQUAL", "FLOAT_LESS", "FLOAT_LESSEQUAL",
                     "FLOAT_ADD", "FLOAT_SUB", "FLOAT_MULT", "FLOAT_DIV", "FLOAT_NEG",
                     "FLOAT_ABS", "FLOAT_SQRT", "FLOAT_CEIL", "FLOAT_FLOOR", "FLOAT_ROUND",
                     "FLOAT_NAN", "INT2FLOAT", "FLOAT2FLOAT", "TRUNC", "CPOOLREF",
                     "NEW", "MULTIEQUAL", "INDIRECT", "PTRADD", "PTRSUB", "CAST",
-                    "LZCOUNT", "PIECE",
+                    "PIECE",
                 }:
                 raise NotImplementedError(f"PCODE opcode {mnemonic.text!r} is not implemented")
 
