@@ -33,9 +33,8 @@ def main():
     config = get_config()
 
     GHIDRA_PROJECT_DIR = pathlib.Path(config["project_dir"])
-
     GHIDRA_DIR = pathlib.Path(config["ghidra_dir"])
-    ghidra_headless_loc = GHIDRA_DIR / "support" / "analyzeHeadless"
+    HEADLESS_ANALYZER = GHIDRA_DIR / "support" / "analyzeHeadless"
 
     # Make some dirs if they don't exist already
     for dir_ in (OBJ_DIR, XML_DIR, GRAPHS_DIR, LLVM_DIR):
@@ -67,7 +66,9 @@ def main():
         if not xml_path.exists():
             print(f"[i] Analysing {filepath!r}")
             subprocess.run([
-                ghidra_headless_loc, GHIDRA_PROJECT_DIR, prj_name, "-import", filepath, "-scriptPath", XML_SCRIPT_DIR, "-postScript", XML_SCRIPT_NAME, xml_path
+                HEADLESS_ANALYZER, GHIDRA_PROJECT_DIR, PROJECT_NAME,
+                "-import", filepath, "-scriptPath", XML_SCRIPT_DIR,
+                "-postScript", XML_SCRIPT_NAME, xml_path
             ], check=True, capture_output=True)
 
         print(f"[i] Lifting {xml_path!r}")
