@@ -3,3 +3,5 @@ __pycache__/
 settings.toml
 tests/obj/
 tests/xml/
+tests/graphs/
+tests/llvm/

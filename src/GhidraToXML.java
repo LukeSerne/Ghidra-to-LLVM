@@ -43,6 +43,8 @@ public class GhidraToXML extends HeadlessScript {
     @Override
     protected void run() throws Exception {
 
+        String out_file_path = getScriptArgs()[0];
+
         DocumentBuilderFactory dFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder dBuilder = dFactory.newDocumentBuilder();
         Document doc = dBuilder.newDocument();
@@ -227,7 +229,7 @@ public class GhidraToXML extends HeadlessScript {
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
         Transformer transformer = transformerFactory.newTransformer();
         DOMSource source = new DOMSource(doc);
-        StreamResult result = new StreamResult(new File("/tmp/output.xml"));
+        StreamResult result = new StreamResult(new File(out_file_path));
         transformer.transform(source, result);
     }
 }
