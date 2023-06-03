@@ -6,7 +6,6 @@ uniques = extracts = internal_functions = memory = flags = pointers = None
 
 def reset_globals():
     global int32, int64, int1, void_type, function_names, registers, functions, uniques, extracts, internal_functions, memory, flags, pointers
-    print("[i] Resetting...")
 
     int32 = ir.IntType(32)
     int64 = ir.IntType(64)
@@ -27,21 +26,18 @@ def lift(filename):
     module = ir.Module(name="lifted")
 
     for register in root.find('globals').findall('register'):
-        if register.get('name') in flags:
-            var = ir.GlobalVariable(module, ir.IntType(1), register.get('name'))
-            var.initializer = ir.Constant(ir.IntType(1), None)
-            var.linkage = 'internal'
-            registers[register.get('name')] = var
-        elif register.get('name') in pointers:
-            var = ir.GlobalVariable(module, ir.PointerType(ir.IntType(8)), register.get('name'))
-            var.initializer = ir.Constant(ir.PointerType(ir.IntType(8)), None)
-            var.linkage = 'internal'
-            registers[register.get('name')] = var
+        register_name = register.get('name')
+
+        if register_name in pointers:
+            # Not sure why this is 8...
+            register_type = ir.PointerType(ir.IntType(8))
         else:
-            var = ir.GlobalVariable(module, ir.IntType(8 * int(register.get('size'))), register.get('name'))
-            var.initializer = ir.Constant(ir.IntType(8 * int(register.get('size'))), None)
-            var.linkage = 'internal'
-            registers[register.get('name')] = var
+            register_type = ir.IntType(8 * int(register.get('size')))
+
+        var = ir.GlobalVariable(module, register_type, register_name)
+        var.initializer = ir.Constant(register_type, None)
+        var.linkage = 'internal'
+        registers[register_name] = var
 
     for memory_location in root.find('memory').findall('memory'):
         var = ir.GlobalVariable(module, ir.IntType(8 * int(memory_location.get('size'))), memory_location.get('name'))
@@ -49,34 +45,25 @@ def lift(filename):
         var.linkage = 'internal'
         memory[memory_location.get('name')] = var
 
-    func_return = ir.VoidType()
-    fnty = ir.FunctionType(func_return, [])
-    ir_func = ir.Function(module, fnty, "intra_function_branch")
-    internal_functions["intra_function_branch"] = ir_func
-
-    func_return = ir.VoidType()
-    fnty = ir.FunctionType(func_return, [])
-    ir_func = ir.Function(module, fnty, "call_indirect")
-    internal_functions["call_indirect"] = ir_func
-
-    func_return = ir.VoidType()
-    fnty = ir.FunctionType(func_return, [])
-    ir_func = ir.Function(module, fnty, "bit_extraction")
-    internal_functions["bit_extraction"] = ir_func
+    for name in ("intra_function_branch", "call_indirect", "special_subpiece", "bit_extraction"):
+        internal_functions[name] = ir.Function(module, ir.FunctionType(ir.VoidType(), []), name)
 
     for function in root.findall('function'):
-        name = function.get('name')
-        x = 1
-        while name in function_names:
-            name = name + "_" + str(x)
-            x += 1
+        func_name = function.get('name')
+
+        if func_name in function_names:
+            x = 0
+            while (name := f"{func_name}_{x}") in function_names:
+                x += 1
+        else:
+            name = func_name
+
         function_names.append(name)
         address = function.get('address')
-        functions[address] = [build_function(name, module), function]
+        functions[address] = (build_function(name, module), function)
 
     for address in functions:
-        ir_func, function = functions[address]
-        populate_func(ir_func, function)
+        populate_func(*functions[address])
 
     return module
 
@@ -193,16 +180,14 @@ def populate_cfg(function, builders, blocks):
                 # target = pcode.find("input_0").text[2:-2]
                 builder.call(internal_functions["call_indirect"], [])
             elif mnemonic.text == "USERDEFINED":
-                raise Exception("Not implemented")
+                raise NotImplementedError("The USERDEFINED operation cannot be implemented")
             elif mnemonic.text == "RETURN":
                 input_1 = pcode.find("input_1")
                 no_branch = False
                 if input_1 is None:
                     builder.ret_void()
                 else:
-                    raise Exception("Return value being passed")
-            elif mnemonic.text == "PIECE":
-                raise Exception("PIECE operation needs to be tested")
+                    raise NotImplementedError("RETURN operation that returns a value has not been implemented")
             elif mnemonic.text == "SUBPIECE":
                 output = pcode.find("output")
                 input_0 = pcode.find("input_0")
@@ -410,58 +395,18 @@ def populate_cfg(function, builders, blocks):
                 rhs = fetch_input_varnode(builder, pcode.find("input_1"))
                 result = builder.or_(lhs, rhs)
                 update_output(builder, pcode.find("output"), result)
-            elif mnemonic.text == "FLOAT_EQUAL":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT_NOTEQUAL":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT_LESS":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT_LESSEQUAL":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT_ADD":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT_SUB":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT_MULT":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT_DIV":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT_NEG":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT_ABS":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT_SQRT":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT_CEIL":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT_FLOOR":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT_ROUND":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT_NAN":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "INT2FLOAT":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "FLOAT2FLOAT":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "TRUNC":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "CPOOLREF":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "NEW":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "MULTIEQUAL":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "INDIRECT":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "PTRADD":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "PTRSUB":
-                raise Exception("Not implemented")
-            elif mnemonic.text == "CAST":
-                raise Exception("Not implemented")
+            elif mnemonic.text in {
+                    "FLOAT_EQUAL", "FLOAT_NOTEQUAL", "FLOAT_LESS", "FLOAT_LESSEQUAL",
+                    "FLOAT_ADD", "FLOAT_SUB", "FLOAT_MULT", "FLOAT_DIV", "FLOAT_NEG",
+                    "FLOAT_ABS", "FLOAT_SQRT", "FLOAT_CEIL", "FLOAT_FLOOR", "FLOAT_ROUND",
+                    "FLOAT_NAN", "INT2FLOAT", "FLOAT2FLOAT", "TRUNC", "CPOOLREF",
+                    "NEW", "MULTIEQUAL", "INDIRECT", "PTRADD", "PTRSUB", "CAST",
+                    "LZCOUNT", "PIECE", "POPCOUNT",
+                }:
+                raise NotImplementedError(f"PCODE opcode {mnemonic.text!r} is not implemented")
             else:
-                raise Exception("Not a standard pcode instruction")
+                raise ValueError(f"{mnemonic.text!r} is not a standard pcode instruction")
+
         block_iterator += 1
         instr += 1
         if block_iterator < len(blocks) and no_branch:
@@ -470,18 +415,24 @@ def populate_cfg(function, builders, blocks):
 
 def fetch_input_varnode(builder, name):
     var_type = name.get("storage")
-    var_size = int(name.get("size")) * 8
+
     if var_type == "register":
         return builder.load(registers[name.text])
+
     elif var_type == "unique":
-        if name.text not in list(uniques.keys()):
+        try:
+            return uniques[name.text]
+        except KeyError:
             raise Exception("Temporary variable referenced before defined")
-        return uniques[name.text]
+
     elif var_type == "constant":
-        var = ir.Constant(ir.IntType(var_size), int(name.text, 0))
-        return var
+        var_size = int(name.get("size")) * 8
+        return ir.Constant(ir.IntType(var_size), int(name.text, 0))
+
     elif var_type == "memory":
         return memory[name.text]
+
+    raise ValueError(f"Unknown varnode storage {var_type} for {name}")
 
 
 
