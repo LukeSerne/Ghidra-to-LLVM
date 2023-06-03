@@ -1,19 +1,28 @@
 from llvmlite import ir
 import xml.etree.ElementTree as et
 
-int32 = ir.IntType(32)
-int64 = ir.IntType(64)
-int1 = ir.IntType(1)
-void_type = ir.VoidType()
-function_names = []
-registers, functions, uniques, extracts = {}, {}, {}, {}
-internal_functions = {}
-memory = {}
-flags = ["ZF", "CF", "OF", "SF"]
-pointers = ["RSP", "RIP", "RBP", "EBP", "ESP"]
+int32 = int64 = int1 = void_type = function_names = registers = functions = \
+uniques = extracts = internal_functions = memory = flags = pointers = None
+
+def reset_globals():
+    global int32, int64, int1, void_type, function_names, registers, functions, uniques, extracts, internal_functions, memory, flags, pointers
+    print("[i] Resetting...")
+
+    int32 = ir.IntType(32)
+    int64 = ir.IntType(64)
+    int1 = ir.IntType(1)
+    void_type = ir.VoidType()
+    function_names = []
+    registers, functions, uniques, extracts = {}, {}, {}, {}
+    internal_functions = {}
+    memory = {}
+    flags = ["ZF", "CF", "OF", "SF"]
+    pointers = ["RSP", "RIP", "RBP", "EBP", "ESP"]
 
 
 def lift(filename):
+    reset_globals()
+
     root = et.parse(filename).getroot()
     module = ir.Module(name="lifted")
 
