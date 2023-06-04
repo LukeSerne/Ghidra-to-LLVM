@@ -1,21 +1,15 @@
 from llvmlite import ir
 import xml.etree.ElementTree as et
 
-int32 = int64 = int1 = void_type = function_names = registers = functions = \
-uniques = extracts = internal_functions = memory = flags = pointers = None
+int64 = function_names = registers = functions = uniques = internal_functions =\
+memory = pointers = None
 
 def reset_globals():
-    global int32, int64, int1, void_type, function_names, registers, functions, uniques, extracts, internal_functions, memory, flags, pointers
+    global int64, function_names, registers, functions, uniques, internal_functions, memory, pointers
 
-    int32 = ir.IntType(32)
     int64 = ir.IntType(64)
-    int1 = ir.IntType(1)
-    void_type = ir.VoidType()
     function_names = []
-    registers, functions, uniques, extracts = {}, {}, {}, {}
-    internal_functions = {}
-    memory = {}
-    flags = ["ZF", "CF", "OF", "SF"]
+    registers, functions, uniques, internal_functions, memory = {}, {}, {}, {}, {}
     pointers = ["RSP", "RIP", "RBP", "EBP", "ESP"]
 
 
