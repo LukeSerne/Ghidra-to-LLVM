@@ -201,8 +201,8 @@ public class GhidraToXML extends HeadlessScript {
                 y++;
             }
         }
-        int x = 0;
-        while (x < registerList.size()){
+        for (int x = 0; x < registerList.size(); x++) {
+            String regName = registerList.get(x);
             Element register = doc.createElement("register");
             Attr name = doc.createAttribute("name");
             name.setValue(registerList.get(x));
@@ -210,11 +210,13 @@ public class GhidraToXML extends HeadlessScript {
             Attr size = doc.createAttribute("size");
             size.setValue(registerSize.get(x));
             register.setAttributeNode(size);
+            Attr flags = doc.createAttribute("flags");
+            flags.setValue(Integer.toString(language.getRegister(regName).getTypeFlags()));
+            register.setAttributeNode(flags);
             globals.appendChild(register);
-            x++;
         }
-        x = 0;
-        while (x < memoryList.size()){
+
+        for (int x = 0; x < memoryList.size(); x++) {
             Element memory_val = doc.createElement("memory");
             Attr name = doc.createAttribute("name");
             name.setValue(memoryList.get(x));
@@ -223,7 +225,6 @@ public class GhidraToXML extends HeadlessScript {
             size.setValue(memorySize.get(x));
             memory_val.setAttributeNode(size);
             memory.appendChild(memory_val);
-            x++;
         }
         // write the content into xml file
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
