@@ -79,6 +79,10 @@ optimised module can be rendered as `.png` files and saved to the `graphs`
 folder.
 
 ## Extra Scripts
+There are some extra scripts located in the `extra_scripts` folder.
 
-- `extra_scripts/HighFunction_Analysis.java`: Prints readable version of the high function representation
-- `extra_scripts/HighFunction2LLVM.java`: Makes an XML file of the the high function representation
+- `HighFunction_Analysis.java`: Prints a readable version of the high function
+  representation.
+- `HighFunction2LLVM.java`: Makes an XML file of the the high function
+  representation of all functions in a program. This might be a potential earlier
+  version of the `src/GhidraToXML.java` file.
