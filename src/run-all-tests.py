@@ -3,6 +3,7 @@ import subprocess
 import pathlib
 import traceback
 import sys
+import argparse
 
 import llvmlite.binding
 import tomli
@@ -26,9 +27,17 @@ def get_config() -> dict[str, str]:
         return tomli.load(f)
 
 def main():
-    render_cfg = "--graph" in sys.argv
-    make_clean = "--clean" in sys.argv
-    refresh_cache = make_clean or ("--refresh" in sys.argv)
+
+    parser = argparse.ArgumentParser(description="Run tests for the Ghidra-To-LLVM project.")
+    parser.add_argument("--graph", action="store_true", help="Render all CFGs", default=False, dest="draw_graphs")
+    parser.add_argument("--clean", action="store_true", help="Completely rerun all tests", default=False, dest="run_clean")
+    parser.add_argument("--refresh", action="store_true", help="Rerun Ghidra analysis for all tests", default=None, dest="run_refresh")
+    parser.add_argument("--only", action="store", help="Only run specified tests. If a path to a folder is specified, runs all tests in that folder.", type=pathlib.Path, default=OBJ_DIR, dest="test_objs")
+
+    results = parser.parse_args()
+
+    refresh_xml_cache = results.run_clean or results.run_refresh
+    test_objs = results.test_objs.iterdir() if results.test_objs.is_dir() else [results.test_objs]
 
     config = get_config()
 
@@ -42,7 +51,7 @@ def main():
             dir_.mkdir()
 
     print("[i] Compiling tests")
-    if make_clean:
+    if results.run_clean:
         subprocess.run(["make", "-C", str(TESTS_DIR), "clean"], check=True)
 
     subprocess.run(["make", "-C", str(TESTS_DIR), "all"], check=True)
@@ -54,13 +63,13 @@ def main():
 
     num_failed = 0
 
-    for i, filepath in enumerate(OBJ_DIR.iterdir()):
+    for i, filepath in enumerate(test_objs):
         filename = filepath.name
         print(f"[i] Processing {filename!r} (#{i})")
 
         xml_path = (XML_DIR / filename).with_suffix(".xml")
 
-        if xml_path.exists() and refresh_cache:
+        if xml_path.exists() and refresh_xml_cache:
             xml_path.unlink()
 
         if not xml_path.exists():
@@ -92,7 +101,7 @@ def main():
             f.write(str(verified_module))
 
         # Render CFG to graph dir
-        if render_cfg:
+        if results.draw_graphs:
             graph(mod_ref)
 
     print(f"[i] DONE! ({num_failed} failed)")
