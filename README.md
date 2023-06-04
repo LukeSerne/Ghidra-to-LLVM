@@ -46,7 +46,20 @@ options:
 
 If you want to run the tests, make sure you have `make` installed and the
 version of `make` you're using supports the `-C` argument to run make from a
-different folder. Then, run `python3 src/run-all-tests.py`.
+different folder. Then, run `python3 src/run_tests.py`.
+
+```
+usage: run_tests.py [-h] [--graph] [--clean] [--refresh] [--only TEST_OBJS]
+
+Run tests for the Ghidra-To-LLVM project.
+
+options:
+  -h, --help        show this help message and exit
+  --graph           Render all CFGs
+  --clean           Completely rerun all tests
+  --refresh         Rerun Ghidra analysis for all tests
+  --only TEST_OBJS  Only run specified tests. If a path to a folder is specified, runs all tests in that folder.
+```
 
 Intermediate files will be created in subfolders of `tests`:
 - `tests/graphs` will contain PNG renders of the control flow graph of all
@@ -61,6 +74,8 @@ If you want to completely rerun all tests, you should provide the `--clean`
 argument. If you want to rerun only the Ghidra analysis and PCODE translation,
 you should provide the `--refresh` argument. Note that `--clean` implies `--refresh`.
 If you want to only rerun the PCODE translation, no arguments need to be given.
+If you just want to test a specific object file, you can specify that file using
+the `--only` flag.
 
 ## Workings
 This script works by loading the provided binary in Ghidra's headless analyzer
