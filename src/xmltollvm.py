@@ -10,10 +10,12 @@ def reset_globals():
     int64 = ir.IntType(64)
     function_names = []
     registers, functions, uniques, internal_functions, memory = {}, {}, {}, {}, {}
-    pointers = ["RSP", "RIP", "RBP", "EBP", "ESP"]
+    pointers = []
 
 
 def lift(filename):
+    global pointers
+
     reset_globals()
 
     root = et.parse(filename).getroot()
@@ -21,12 +23,29 @@ def lift(filename):
 
     for register in root.find('globals').findall('register'):
         register_name = register.get('name')
+        register_width = 8 * int(register.get('size'))
+        register_flags = int(register.get('flags'))
+
+        # Determine register type based on the flags and width
+        if register_flags & 128:  # Register.TYPE_VECTOR
+            register_type = ir.VectorType(ir.IntType(1), register_width)
+        else:
+            register_type = ir.IntType(register_width)
+
+        # Determine whether the register always contains a pointer, and if so,
+        # add it to a list of pointer registers.
+        # TODO: Is this distinction between 'pointer registers' and normal
+        #       registers really necessary for correct translation to LLVM IR?
+        # HACK: The 'or ...' clause is a workaround for: https://github.com/NationalSecurityAgency/ghidra/issues/5415
+        if register_flags & (1 | 2 | 4) or register_name in {"RSP", "ESP", "RBP", "EBP"}:  # Register.TYPE_FP | Register.TYPE_SP | Register.TYPE_PC
+            pointers.append(register_name)
+            register_type = ir.PointerType(register_type)
 
         if register_name in pointers:
             # Not sure why this is 8...
             register_type = ir.PointerType(ir.IntType(8))
         else:
-            register_type = ir.IntType(8 * int(register.get('size')))
+            register_type = ir.IntType(register_width)
 
         var = ir.GlobalVariable(module, register_type, register_name)
         var.initializer = ir.Constant(register_type, None)
@@ -94,9 +113,11 @@ def build_cfg(function, ir_func):
 # noinspection DuplicatedCode
 def populate_cfg(function, builders, blocks):
     builder = builders["entry"]
+
     stack_size = 10 * 1024 * 1024
     stack = builder.alloca(ir.IntType(8), stack_size, name="stack")
     stack_top = builder.gep(stack, [ir.Constant(int64, stack_size - 8)], name="stack_top")
+
     builder.store(stack_top, registers["RSP"])
     builder.branch(list(blocks.values())[1])
 
